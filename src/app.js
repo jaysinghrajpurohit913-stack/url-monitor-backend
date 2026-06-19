@@ -5,7 +5,10 @@ const cookieParser = require("cookie-parser");
 app.use(cookieParser());
 const cors = require('cors');
 app.use(cors({
-  origin: "http://127.0.0.1:3000",
+  origin: [
+    "http://127.0.0.1:3000",
+    "https://id-preview--…lovable.app"
+    ],
   credentials: true
 }));
 
