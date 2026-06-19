@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pulseline — URL Monitoring</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0F1A;
+    --bg-raised:#111A2B;
+    --bg-raised-2:#15203680;
+    --text:#ECF1F8;
+    --mist:#8392AB;
+    --accent:#FF9D4D;
+    --accent-dim:#FF9D4D33;
+    --up:#3FCDA0;
+    --down:#FB6B6B;
+    --hairline:rgba(236,241,248,0.09);
+    --hairline-strong:rgba(236,241,248,0.16);
+    --radius:10px;
+    font-size:16px;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    line-height:1.5;
+    min-height:100vh;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  a{color:var(--accent);}
+
+  *:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px;}
+
+  /* ---------- Heartbeat ribbon (signature element) ---------- */
+  .ribbon{
+    position:relative;
+    height:48px;
+    overflow:hidden;
+    background:linear-gradient(180deg,#0D1525,#0A0F1A);
+    border-bottom:1px solid var(--hairline);
+  }
+  .ribbon-svg{display:block;width:100%;height:100%;}
+  .ribbon-track{animation:scrollPulse 6s linear infinite;}
+  .ribbon-path{
+    fill:none;
+    stroke:var(--accent);
+    stroke-width:2;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+    opacity:0.8;
+  }
+  @keyframes scrollPulse{from{transform:translateX(0);}to{transform:translateX(-600px);}}
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    max-width:720px;
+    margin:0 auto;
+    padding:18px 20px 0;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .wordmark{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:1.15rem;
+    letter-spacing:0.02em;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .wordmark .dot{
+    width:9px;height:9px;border-radius:50%;
+    background:var(--accent);
+    box-shadow:0 0 0 4px var(--accent-dim);
+  }
+  .session-pill{
+    font-size:0.85rem;
+    color:var(--mist);
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .session-pill strong{color:var(--text);font-weight:600;}
+  .link-btn{
+    background:none;border:none;color:var(--accent);
+    font-family:inherit;font-size:0.85rem;cursor:pointer;padding:2px 0;
+    text-decoration:underline;text-decoration-color:var(--accent-dim);
+  }
+  .link-btn:hover{text-decoration-color:var(--accent);}
+
+  main{max-width:720px;margin:0 auto;padding:28px 20px 80px;}
+
+  /* ---------- Generic panel ---------- */
+  .panel{
+    background:var(--bg-raised);
+    border:1px solid var(--hairline);
+    border-radius:var(--radius);
+    padding:22px;
+    margin-bottom:22px;
+  }
+  .panel h2{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:1rem;
+    font-weight:600;
+    margin:0 0 4px;
+  }
+  .panel .sub{color:var(--mist);font-size:0.88rem;margin:0 0 16px;}
+
+  /* ---------- API config ---------- */
+  .api-config{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    margin-bottom:22px;
+  }
+  .api-config label{font-size:0.78rem;color:var(--mist);text-transform:uppercase;letter-spacing:0.06em;}
+  .api-config input{width:100%;}
+  .api-config .hint{font-size:0.8rem;color:var(--mist);margin:2px 0 0;}
+
+  /* ---------- Form basics ---------- */
+  input[type=text],input[type=email],input[type=password],input[type=url]{
+    background:#0D1626;
+    border:1px solid var(--hairline-strong);
+    color:var(--text);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.92rem;
+    padding:11px 12px;
+    border-radius:8px;
+    width:100%;
+  }
+  input::placeholder{color:#4D5A72;}
+  label.field-label{display:block;font-size:0.82rem;color:var(--mist);margin:0 0 6px;}
+  .field{margin-bottom:14px;}
+
+  button[type=submit],.btn-primary{
+    background:var(--accent);
+    color:#1A0F00;
+    border:none;
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:0.92rem;
+    padding:11px 18px;
+    border-radius:8px;
+    cursor:pointer;
+    transition:opacity .15s ease;
+  }
+  button[type=submit]:hover,.btn-primary:hover{opacity:0.88;}
+  button[disabled]{opacity:0.55;cursor:default;}
+
+  .form-message{font-size:0.85rem;margin:12px 0 0;padding:9px 11px;border-radius:6px;}
+  .form-message.error{background:#FB6B6B1A;color:var(--down);border:1px solid #FB6B6B40;}
+  .form-message.success{background:#3FCDA01A;color:var(--up);border:1px solid #3FCDA040;}
+
+  /* ---------- Auth tabs ---------- */
+  .tabs{display:flex;gap:4px;margin-bottom:18px;border-bottom:1px solid var(--hairline);}
+  .tab{
+    background:none;border:none;color:var(--mist);
+    font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:0.9rem;
+    padding:8px 4px 12px;margin-right:18px;cursor:pointer;
+    border-bottom:2px solid transparent;
+  }
+  .tab.active{color:var(--text);border-bottom-color:var(--accent);}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  .hidden{display:none !important;}
+
+  /* ---------- Monitor list ---------- */
+  .monitor-list{display:flex;flex-direction:column;gap:10px;}
+  .monitor-card{
+    background:#0D1626;
+    border:1px solid var(--hairline);
+    border-radius:8px;
+    padding:14px 16px;
+    display:flex;
+    align-items:flex-start;
+    gap:12px;
+    position:relative;
+  }
+  .status-dot{
+    width:10px;height:10px;border-radius:50%;
+    background:var(--accent);
+    margin-top:4px;
+    flex-shrink:0;
+    animation:pulseDot 1.8s ease-in-out infinite;
+  }
+  @keyframes pulseDot{
+    0%,100%{box-shadow:0 0 0 0 var(--accent-dim);}
+    50%{box-shadow:0 0 0 6px var(--accent-dim);}
+  }
+  .monitor-body{flex:1;min-width:0;}
+  .monitor-url{
+    font-size:0.92rem;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    display:block;
+  }
+  .monitor-meta{
+    display:flex;flex-wrap:wrap;gap:14px;
+    margin-top:6px;font-size:0.78rem;color:var(--mist);
+  }
+  .monitor-meta span b{color:var(--text);font-weight:500;}
+  .dismiss-btn{
+    background:none;border:none;color:var(--mist);
+    font-size:1rem;cursor:pointer;line-height:1;padding:2px 4px;
+  }
+  .dismiss-btn:hover{color:var(--down);}
+  .empty-state{
+    color:var(--mist);font-size:0.88rem;
+    border:1px dashed var(--hairline-strong);
+    border-radius:8px;padding:22px;text-align:center;
+  }
+  .count-badge{
+    font-family:'IBM Plex Mono',monospace;font-size:0.78rem;
+    color:var(--mist);font-weight:400;
+  }
+
+  /* ---------- Diagnostic note ---------- */
+  .diagnostic{
+    border:1px solid var(--hairline-strong);
+    border-radius:8px;
+    padding:14px 16px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.8rem;
+    color:var(--mist);
+    line-height:1.6;
+    margin-top:18px;
+  }
+  .diagnostic .tag{color:var(--accent);}
+
+  @media (prefers-reduced-motion: reduce){
+    .ribbon-track,.status-dot{animation:none !important;}
+  }
+
+  @media (max-width:520px){
+    .monitor-meta{gap:10px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="ribbon" aria-hidden="true">
+  <svg class="ribbon-svg" viewBox="0 0 600 60" preserveAspectRatio="none">
+    <g class="ribbon-track">
+      <path class="ribbon-path" d="M0,30 L60,30 L75,30 L85,8 L95,52 L105,18 L115,30 L300,30 L360,30 L375,30 L385,8 L395,52 L405,18 L415,30 L600,30" />
+      <path class="ribbon-path" d="M0,30 L60,30 L75,30 L85,8 L95,52 L105,18 L115,30 L300,30 L360,30 L375,30 L385,8 L395,52 L405,18 L415,30 L600,30" transform="translate(600,0)" />
+    </g>
+  </svg>
+</div>
+
+<div class="topbar">
+  <div class="wordmark"><span class="dot"></span>PULSELINE</div>
+  <div class="session-pill" id="sessionPill"></div>
+</div>
+
+<main>
+
+  <section class="api-config">
+    <label for="apiBaseInput">API base URL</label>
+    <input type="text" id="apiBaseInput" value="http://localhost:5000" />
+    <p class="hint">Point this at wherever your Express server is listening (the <code class="mono">Port</code> value from your <code class="mono">.env</code>). No <code class="mono">/api</code> prefix — your routes are mounted at root.</p>
+  </section>
+
+  <section id="authSection" class="panel">
+    <div class="tabs">
+      <button class="tab active" data-tab="login" type="button">Log in</button>
+      <button class="tab" data-tab="signup" type="button">Create account</button>
+    </div>
+
+    <form id="loginForm" class="tab-panel active">
+      <div class="field">
+        <label class="field-label" for="loginUsername">Username</label>
+        <input type="text" id="loginUsername" required autocomplete="username" />
+      </div>
+      <div class="field">
+        <label class="field-label" for="loginPassword">Password</label>
+        <input type="password" id="loginPassword" required autocomplete="current-password" />
+      </div>
+      <button type="submit">Log in</button>
+    </form>
+
+    <form id="signupForm" class="tab-panel">
+      <div class="field">
+        <label class="field-label" for="signupUsername">Username</label>
+        <input type="text" id="signupUsername" required minlength="3" autocomplete="username" />
+      </div>
+      <div class="field">
+        <label class="field-label" for="signupEmail">Email</label>
+        <input type="email" id="signupEmail" required autocomplete="email" />
+      </div>
+      <div class="field">
+        <label class="field-label" for="signupPassword">Password</label>
+        <input type="password" id="signupPassword" required minlength="3" autocomplete="new-password" />
+      </div>
+      <button type="submit">Create account</button>
+    </form>
+  </section>
+
+  <section id="dashboardSection" class="panel hidden">
+    <h2>Watch a new URL</h2>
+    <p class="sub">Submitting this validates the URL is reachable and registers it for checks on the backend.</p>
+    <form id="addMonitorForm">
+      <div class="field">
+        <label class="field-label" for="monitorUrl">URL</label>
+        <input type="url" id="monitorUrl" placeholder="https://example.com" required />
+      </div>
+      <button type="submit">Start watching</button>
+    </form>
+  </section>
+
+  <section id="monitorsSection" class="hidden">
+    <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1rem;display:flex;align-items:center;gap:8px;">
+      Signals <span class="count-badge" id="monitorCount">0</span>
+    </h2>
+    <div class="monitor-list" id="monitorList"></div>
+
+    <div class="diagnostic" id="diagnosticNote"></div>
+  </section>
+
+</main>
+
+<script>
+(function(){
+  const state = { loggedIn:false, username:'', monitors:[] };
+
+  const apiBaseInput = document.getElementById('apiBaseInput');
+  const sessionPill = document.getElementById('sessionPill');
+  const authSection = document.getElementById('authSection');
+  const dashboardSection = document.getElementById('dashboardSection');
+  const monitorsSection = document.getElementById('monitorsSection');
+  const monitorList = document.getElementById('monitorList');
+  const monitorCount = document.getElementById('monitorCount');
+  const diagnosticNote = document.getElementById('diagnosticNote');
+
+  diagnosticNote.innerHTML = '<span class="tag">// NOTE</span> Signals below live only in this browser tab. Your backend has no endpoint to list saved monitors or fetch check history yet, so reloading this page — or opening Pulseline elsewhere — won\'t bring them back. Add <span class="tag">GET /url</span> (list monitors) and <span class="tag">GET /url/:id/checks</span> (check history) to change that.';
+
+  function getApiBase(){
+    return apiBaseInput.value.trim().replace(/\/+$/,'');
+  }
+
+  async function parseBody(res){
+    const raw = await res.text();
+    let json = null;
+    try { json = raw ? JSON.parse(raw) : null; } catch(e) { json = null; }
+    return { json, raw };
+  }
+
+  function extractMessage(json, raw){
+    if (json) {
+      return json.message || json.error || json.name || JSON.stringify(json);
+    }
+    return raw && raw.trim() ? raw.trim() : 'No response body';
+  }
+
+  function networkErrorHint(err){
+    return 'Could not reach ' + getApiBase() + '. If the server is running, this is almost always a missing CORS setup on the backend — it needs the cors package configured with credentials enabled for this page\'s origin. (' + err.message + ')';
+  }
+
+  function showFormMessage(form, text, kind){
+    let m = form.querySelector('.form-message');
+    if (!m){
+      m = document.createElement('p');
+      m.className = 'form-message';
+      form.appendChild(m);
+    }
+    m.textContent = text;
+    m.classList.remove('error','success');
+    m.classList.add(kind);
+  }
+
+  // ---------- Tabs ----------
+  document.querySelectorAll('.tab').forEach(function(tabBtn){
+    tabBtn.addEventListener('click', function(){
+      document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+      document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
+      tabBtn.classList.add('active');
+      document.getElementById(tabBtn.dataset.tab + 'Form').classList.add('active');
+    });
+  });
+
+  function switchTab(name){
+    document.querySelectorAll('.tab').forEach(function(t){ t.classList.toggle('active', t.dataset.tab === name); });
+    document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.toggle('active', p.id === name + 'Form'); });
+  }
+
+  // ---------- Session UI ----------
+  function renderSession(){
+    if (state.loggedIn){
+      sessionPill.innerHTML = '<span>Signed in as <strong>' + escapeHtml(state.username) + '</strong></span><button class="link-btn" id="logoutBtn" type="button">Log out</button>';
+      document.getElementById('logoutBtn').addEventListener('click', logout);
+      authSection.classList.add('hidden');
+      dashboardSection.classList.remove('hidden');
+      monitorsSection.classList.remove('hidden');
+    } else {
+      sessionPill.innerHTML = '';
+      authSection.classList.remove('hidden');
+      dashboardSection.classList.add('hidden');
+      monitorsSection.classList.add('hidden');
+    }
+  }
+
+  function logout(){
+    state.loggedIn = false;
+    state.username = '';
+    renderSession();
+    switchTab('login');
+  }
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // ---------- Formatting helpers ----------
+  function formatInterval(seconds){
+    if (seconds == null) return '—';
+    if (seconds < 60) return 'every ' + seconds + 's';
+    if (seconds < 3600) return 'every ' + Math.round(seconds/60) + 'm';
+    return 'every ' + Math.round(seconds/3600) + 'h';
+  }
+
+  function formatRelative(dateStr){
+    if (!dateStr) return '—';
+    const target = new Date(dateStr).getTime();
+    if (isNaN(target)) return '—';
+    const diffMs = target - Date.now();
+    const abs = Math.abs(diffMs);
+    const sec = Math.round(abs/1000);
+    let label;
+    if (sec < 60) label = sec + 's';
+    else if (sec < 3600) label = Math.round(sec/60) + 'm';
+    else label = Math.round(sec/3600) + 'h';
+    return diffMs >= 0 ? 'in ' + label : label + ' ago';
+  }
+
+  // ---------- Monitor rendering ----------
+  function renderMonitors(){
+    monitorCount.textContent = String(state.monitors.length);
+    if (state.monitors.length === 0){
+      monitorList.innerHTML = '<div class="empty-state">No signals yet. Add a URL above to start watching it.</div>';
+      return;
+    }
+    monitorList.innerHTML = '';
+    state.monitors.forEach(function(m, idx){
+      const card = document.createElement('div');
+      card.className = 'monitor-card';
+      card.innerHTML =
+        '<span class="status-dot" title="Armed — live up/down status isn\'t exposed by the backend yet"></span>' +
+        '<div class="monitor-body">' +
+          '<span class="monitor-url mono" title="' + escapeHtml(m.url) + '">' + escapeHtml(m.url) + '</span>' +
+          '<div class="monitor-meta">' +
+            '<span>' + formatInterval(m.interval) + '</span>' +
+            '<span>next check <b>' + formatRelative(m.nextCheckedAt) + '</b></span>' +
+            '<span>id <b class="mono">' + escapeHtml(String(m._id || '').slice(-8)) + '</b></span>' +
+          '</div>' +
+        '</div>' +
+        '<button class="dismiss-btn" title="Remove from this view only — your backend has no delete endpoint yet" data-idx="' + idx + '">&times;</button>';
+      monitorList.appendChild(card);
+    });
+    monitorList.querySelectorAll('.dismiss-btn').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        const idx = Number(btn.dataset.idx);
+        state.monitors.splice(idx,1);
+        renderMonitors();
+      });
+    });
+  }
+
+  setInterval(function(){ if (state.monitors.length) renderMonitors(); }, 5000);
+
+  // ---------- Form handlers ----------
+  document.getElementById('loginForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    const form = e.target;
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const btn = form.querySelector('button[type=submit]');
+    btn.disabled = true; const original = btn.textContent; btn.textContent = 'Logging in…';
+    try{
+      const res = await fetch(getApiBase() + '/user/login', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        credentials:'include',
+        body: JSON.stringify({ username, password })
+      });
+      const { json, raw } = await parseBody(res);
+      if (res.ok){
+        state.loggedIn = true;
+        state.username = username;
+        showFormMessage(form, 'Logged in.', 'success');
+        renderSession();
+      } else {
+        showFormMessage(form, extractMessage(json, raw), 'error');
+      }
+    } catch(err){
+      showFormMessage(form, networkErrorHint(err), 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = original;
+    }
+  });
+
+  document.getElementById('signupForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    const form = e.target;
+    const username = document.getElementById('signupUsername').value.trim();
+    const Email = document.getElementById('signupEmail').value.trim();
+    const password = document.getElementById('signupPassword').value;
+    const btn = form.querySelector('button[type=submit]');
+    btn.disabled = true; const original = btn.textContent; btn.textContent = 'Creating…';
+    try{
+      const res = await fetch(getApiBase() + '/user/signup', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        credentials:'include',
+        body: JSON.stringify({ username, Email, password })
+      });
+      const { json, raw } = await parseBody(res);
+      if (res.ok){
+        showFormMessage(form, 'Account created. You can log in now.', 'success');
+        document.getElementById('loginUsername').value = username;
+        switchTab('login');
+      } else {
+        showFormMessage(form, extractMessage(json, raw), 'error');
+      }
+    } catch(err){
+      showFormMessage(form, networkErrorHint(err), 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = original;
+    }
+  });
+
+  document.getElementById('addMonitorForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    const form = e.target;
+    const urlInput = document.getElementById('monitorUrl');
+    const url = urlInput.value.trim();
+    const btn = form.querySelector('button[type=submit]');
+    btn.disabled = true; const original = btn.textContent; btn.textContent = 'Checking…';
+    try{
+      const res = await fetch(getApiBase() + '/url', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        credentials:'include',
+        body: JSON.stringify({ url })
+      });
+      const { json, raw } = await parseBody(res);
+      if (res.ok && json && json.response){
+        state.monitors.unshift(json.response);
+        renderMonitors();
+        showFormMessage(form, 'Now watching ' + json.response.url, 'success');
+        urlInput.value = '';
+      } else {
+        showFormMessage(form, extractMessage(json, raw), 'error');
+      }
+    } catch(err){
+      showFormMessage(form, networkErrorHint(err), 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = original;
+    }
+  });
+
+  renderSession();
+  renderMonitors();
+})();
+</script>
+
+</body>
+</html>

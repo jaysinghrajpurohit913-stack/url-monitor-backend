@@ -1,0 +1,386 @@
+You're thinking about it a little differently than cron works.
+
+The fields are **not delays** ("after X seconds, then after Y minutes"). They are **time values**.
+
+For your format:
+
+```text id="cron6"
+* * * * * *
+S M H D W Y
+```
+
+Let's say:
+
+```text id="cronex"
+30 15 9 * * *
+```
+
+This means:
+
+* `30` = second 30
+* `15` = minute 15
+* `9` = hour 9 (9 AM)
+* `*` = any day
+* `*` = any weekday
+* `*` = any year
+
+So it runs when the clock reaches:
+
+```text id="timeex"
+09:15:30
+```
+
+every day.
+
+Another example:
+
+```text id="cronex2"
+0 0 1 * * *
+```
+
+means:
+
+> Run at **01:00:00 AM** every day.
+
+Think of it like matching a calendar:
+
+```text id="calendar"
+Second = 0
+Minute = 0
+Hour   = 1
+Day    = any
+Weekday= any
+Year   = any
+```
+
+When the current date/time matches all those values, the job runs.
+
+So:
+
+* `S` = what second? (0-59)
+* `M` = what minute? (0-59)
+* `H` = what hour? (0-23)
+* `D` = what day of month? (1-31)
+* `W` = what weekday? (0-6 or SUN-SAT, depending on system)
+* `Y` = what year?
+
+Example:
+
+```text id="cronex3"
+0 30 21 * * *
+```
+
+means:
+
+> Run at **21:30:00** (9:30 PM) every day.
+
+The scheduler checks the clock every second (or minute, depending on implementation) and asks:
+
+> "Is it second 0, minute 30, hour 21?"
+
+If yes, it runs the task. It is **not counting down** 21 hours. It is matching the current time.
+
+
+## Cron in Simple English (6-field format)
+
+Assume your cron library uses:
+
+```text
+* * * * * *
+│ │ │ │ │ │
+│ │ │ │ │ └─ Weekday
+│ │ │ │ └── Month
+│ │ │ └─── Day of Month
+│ │ └──── Hour
+│ └───── Minute
+└────── Second
+```
+
+Or more commonly:
+
+```text
+Second Minute Hour Day Month Weekday
+```
+
+---
+
+## Important thing you were confused about
+
+Cron fields are **NOT delays**.
+
+❌ Wrong thinking:
+
+> "1 in the hour field means wait 1 hour"
+
+✅ Correct thinking:
+
+> "1 in the hour field means when the clock shows hour = 1"
+
+Cron matches the current time on the clock.
+
+---
+
+## Meaning of `*`
+
+```text
+*
+```
+
+means:
+
+> Any value / every value
+
+Examples:
+
+```text
+* * * * * *
+```
+
+means:
+
+> Every second
+
+---
+
+## First field = Seconds
+
+```text
+0 * * * * *
+```
+
+Runs at second 0 of every minute:
+
+```text
+10:00:00
+10:01:00
+10:02:00
+```
+
+```text
+10 * * * * *
+```
+
+Runs at second 10 of every minute:
+
+```text
+10:00:10
+10:01:10
+10:02:10
+```
+
+```text
+30 * * * * *
+```
+
+Runs at second 30 of every minute:
+
+```text
+10:00:30
+10:01:30
+10:02:30
+```
+
+---
+
+## Hour uses 24-hour time
+
+```text
+0 0 1 * * *
+```
+
+means:
+
+> 1:00 AM every day
+
+```text
+0 0 13 * * *
+```
+
+means:
+
+> 1:00 PM every day
+
+Remember:
+
+```text
+1  = 1 AM
+9  = 9 AM
+12 = 12 PM
+21 = 9 PM
+23 = 11 PM
+```
+
+---
+
+## `*/5` means every 5 units
+
+```text
+0 */5 * * * *
+```
+
+means:
+
+> Every 5 minutes
+
+Runs at:
+
+```text
+10:00:00
+10:05:00
+10:10:00
+10:15:00
+```
+
+---
+
+## Common expressions
+
+### Every second
+
+```js
+* * * * * *
+```
+
+### Every minute
+
+```js
+0 * * * * *
+```
+
+Runs at:
+
+```text
+10:00:00
+10:01:00
+10:02:00
+```
+
+### Every 5 minutes
+
+```js
+0 */5 * * * *
+```
+
+Runs at:
+
+```text
+10:00:00
+10:05:00
+10:10:00
+```
+
+### Every hour
+
+```js
+0 0 * * * *
+```
+
+Runs at:
+
+```text
+10:00:00
+11:00:00
+12:00:00
+```
+
+### Every day at 9 AM
+
+```js
+0 0 9 * * *
+```
+
+Runs at:
+
+```text
+09:00:00
+```
+
+every day.
+
+### Every day at 9 PM
+
+```js
+0 0 21 * * *
+```
+
+Runs at:
+
+```text
+21:00:00
+```
+
+every day.
+
+---
+
+## The examples you asked about
+
+```js
+cron.schedule('1 * * * * *')
+```
+
+➡ Runs every minute at second 1:
+
+```text
+10:00:01
+10:01:01
+10:02:01
+```
+
+---
+
+```js
+cron.schedule('10 * * * * *')
+```
+
+➡ Runs every minute at second 10:
+
+```text
+10:00:10
+10:01:10
+10:02:10
+```
+
+---
+
+```js
+cron.schedule('0 * * * * *')
+```
+
+➡ Runs every minute at second 0:
+
+```text
+10:00:00
+10:01:00
+10:02:00
+```
+
+---
+
+```js
+cron.schedule('0 */1 * * * *')
+```
+
+➡ Same as above (every minute):
+
+```text
+10:00:00
+10:01:00
+10:02:00
+```
+
+---
+
+### One-line rule to remember
+
+**Read cron left to right as:**
+
+```text
+Second Minute Hour Day Month Weekday
+```
+
+and ask:
+
+> "At what second? At what minute? At what hour?"
+
+When the current clock time matches all those values, the job runs.
