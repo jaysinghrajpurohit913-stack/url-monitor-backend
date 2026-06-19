@@ -13,6 +13,7 @@ const UrlValidator = async (req, res , next)=>{
           });
     }
 
+
     // now check is this url entered is valid or not
     try {
 
@@ -20,6 +21,17 @@ const UrlValidator = async (req, res , next)=>{
     // res.json({
     //   message: "Valid URL",
     // });
+    const existingMonitor = await MonitorModel.findOne({
+    userId: req.user.userId,
+    url
+    });
+
+if (existingMonitor) {
+    return res.status(400).json({
+        success: false,
+        message: "URL already being monitored"
+    });
+}
 
     // checking is this url exist in real 
     const response = await axios.get(url, {

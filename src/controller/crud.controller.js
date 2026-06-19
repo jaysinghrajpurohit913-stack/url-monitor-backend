@@ -25,13 +25,13 @@ const getmonitors   =  async (req , res )=>{
 const deleteAllMonitor  =  async (req , res )=>{
      try {
 
-        const monitors = await MonitorModel.findByIdAndDelete({
+        await MonitorModel.deleteMany({
             userId: req.user.userId
         });
 
         res.json({
             success: true,
-            data: monitors
+           
         });
 
     } catch (err) {
@@ -42,10 +42,32 @@ const deleteAllMonitor  =  async (req , res )=>{
     }
 }
 
+const deleteMonitor =  async (req , res )=>{
+
+    try{
+       
+        await MonitorModel.findOneAndDelete({
+                _id: req.params.id,
+                userId: req.user.userId
+        });
+          res.json({
+            success: true,
+        });
+
+    }catch(err){
+         res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    }
+
+}
+ 
+
 
 
 module.exports = {
     getmonitors,
-    deleteAllMonitor
-
+    deleteAllMonitor,
+    deleteMonitor,
 }
