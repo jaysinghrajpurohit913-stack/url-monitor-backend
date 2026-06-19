@@ -5,7 +5,7 @@ const getmonitors   =  async (req , res )=>{
      try {
 
         const monitors = await MonitorModel.find({
-            userId: req.user.id
+            userId: req.user.userId
         });
 
         res.json({
@@ -26,7 +26,7 @@ const deleteAllMonitor  =  async (req , res )=>{
      try {
 
         const monitors = await MonitorModel.findByIdAndDelete({
-            userId: req.user.id
+            userId: req.user.userId
         });
 
         res.json({

@@ -3,7 +3,7 @@ const routes = express.Router();
 
 const UrlValidator = require('../controller/url.controller');
 const auth  = require('../Auth/user.auth');
-const {getmonitors} = require('../controller/check.controller');
+const {getmonitors} = require('../controller/crud.controller');
 
 routes.post('/url' , auth ,UrlValidator ,(req , res ) =>{
     res.json({
@@ -11,7 +11,7 @@ routes.post('/url' , auth ,UrlValidator ,(req , res ) =>{
     });
 })
 
-routes.get('/monitors' , getmonitors);
+routes.get('/monitors' , auth ,  getmonitors);
 
 
 
