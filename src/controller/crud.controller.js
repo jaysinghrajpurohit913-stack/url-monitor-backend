@@ -1,68 +1,145 @@
 const MonitorModel = require('../models/monitor.model');
+const check_url = require("../models/check.models");
+
+const getmonitors = async(req,res)=>{
+
+try{
+
+    const monitors = await MonitorModel.find({
+        userId:req.user.userId
+    }).lean();
 
 
-const getmonitors   =  async (req , res )=>{
-     try {
+    const result = await Promise.all(
 
-        const monitors = await MonitorModel.find({
-            userId: req.user.userId
-        });
+        monitors.map(async monitor=>{
 
-        res.json({
-            success: true,
-            data: monitors
-        });
+            const latestCheck = await check_url
+            .findOne({
+                monitorid:monitor._id
+            })
+            .sort({
+                checkedAt:-1
+            });
 
-    } catch (err) {
-        res.status(500).json({
-            success: false,
-            message: err.message
-        });
-    }
+            return{
+                ...monitor,
+                latestCheck
+            };
+
+        })
+
+    );
+
+
+    res.json({
+        success:true,
+        data:result
+    });
+
+}
+catch(err){
+
+    res.status(500).json({
+        success:false,
+        message:err.message
+    });
+
+}
+
 }
 
 
-const deleteAllMonitor  =  async (req , res )=>{
-     try {
+const deleteAllMonitor = async(req,res)=>{
 
-        await MonitorModel.deleteMany({
-            userId: req.user.userId
-        });
+try{
 
-        res.json({
-            success: true,
-           
-        });
+    const monitors = await MonitorModel.find({
+        userId:req.user.userId
+    });
 
-    } catch (err) {
-        res.status(500).json({
-            success: false,
-            message: err.message
-        });
-    }
+    
+
+    const monitorIds = monitors.map(
+        monitor => monitor._id
+    );
+
+
+    await check_url.deleteMany({
+        monitorid:{
+            $in:monitorIds
+        }
+    });
+
+
+    await MonitorModel.deleteMany({
+        userId:req.user.userId
+    });
+     // Reset count
+     await UserModel.findByIdAndUpdate(
+            req.user.userId,
+            {
+                $set: { count: 0 }
+            }
+        );
+
+
+    res.json({
+        success:true
+    });
+
+}
+catch(err){
+
+    res.status(500).json({
+        success:false,
+        message:err.message
+    });
+
 }
 
-const deleteMonitor =  async (req , res )=>{
+}
 
-    try{
-       
-        await MonitorModel.findOneAndDelete({
-                _id: req.params.id,
-                userId: req.user.userId
-        });
-          res.json({
-            success: true,
+
+const deleteMonitor = async(req,res)=>{
+
+try{
+
+    await UserModel.findByIdAndUpdate(
+    req.user.userId,
+    {
+        $inc:{ count:-1 }
+    }
+);
+    const monitor = await MonitorModel.findOneAndDelete({
+        _id:req.params.id,
+        userId:req.user.userId
+    });
+
+    if(monitor){
+
+        await check_url.deleteMany({
+            monitorid:monitor._id
         });
 
-    }catch(err){
-         res.status(500).json({
-            success: false,
-            message: err.message
-        });
     }
 
+
+    res.json({
+        success:true
+    });
+
 }
- 
+catch(err){
+
+    res.status(500).json({
+        success:false,
+        message:err.message
+    });
+
+}
+
+}
 
 
 

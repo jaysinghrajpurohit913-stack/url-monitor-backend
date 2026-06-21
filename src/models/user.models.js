@@ -5,8 +5,7 @@ const userSchema = new mongoose.Schema({
         type: String,
         required : true,
         trim:true,
-        lowecase:true,
-        unique: [true,"Its not available"],
+       lowercase:true,
         minlength:[3,"Username must be atleast 3 character long "]
 
     },
@@ -15,14 +14,17 @@ const userSchema = new mongoose.Schema({
         required : true,
         unique : [true,"Its not available"],
         trim:true,
-        lowecase:true,
-        unique: true,
+       lowercase:true,
     },
     password :{
         type: String,
         required : true,
         trim:true,
         minlength:[3,"Username must be atleast 5 character long "],
+    },
+    count:{
+        type: Number,
+        default : 0  // for number of  monitor
     }
 })
 

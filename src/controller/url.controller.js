@@ -1,5 +1,5 @@
 const axios = require('axios');
-const user_url = require('../models/check.models');
+const UserModel = require('../models/user.models');
 const MonitorModel = require('../models/monitor.model');
 
 const UrlValidator = async (req, res , next)=>{
@@ -39,9 +39,27 @@ if (existingMonitor) {
     validateStatus: () => true // so not get error for  401 and other as it consider only sucess as 200-299
     });
 
+   const user = await UserModel.findOneAndUpdate(
+  {
+    _id: req.user.userId,
+    count: { $lt: 10 }
+  },
+  {
+    $inc: { count: 1 }
+  },
+  {
+     returnDocument: 'after'
+  }
+);
 
-    const Monitor  = await MonitorModel.create({
-        url : normalizedUrl,
+    if (!user) {
+      return res.status(400).json({
+       message: "Count limit reached (max 10)"
+     });
+    }
+
+        const Monitor  = await MonitorModel.create({
+        url : normalizedUrl, 
         userId: req.user.userId,
        
     });

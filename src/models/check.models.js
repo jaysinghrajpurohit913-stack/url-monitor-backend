@@ -27,7 +27,7 @@ const UrlSchema = new mongoose.Schema({
     },
     checkedAt: {
     type: Date,
-    default: Date.now(),
+    default: Date.now,
     expires:"1d"
     },
     monitorid:{

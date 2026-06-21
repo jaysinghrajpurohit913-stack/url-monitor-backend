@@ -3,7 +3,7 @@ const app = require('./src/app');
 const connectiontoDB = require('./src/config/db');
 connectiontoDB();
 
-const checkurl = require('./src/controller/check.controller');
+const {checkurl} = require('./src/controller/check.controller');
 checkurl();
 
 

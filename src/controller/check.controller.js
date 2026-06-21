@@ -3,88 +3,130 @@ const MonitorModel = require('../models/monitor.model');
 const axios  = require('axios');
 const check_url = require('../models/check.models');
 
-const checkurl  = async(req , res ) =>{
-    //  * * * * * * => S M H D W Y
-    cron.schedule('0 */10 * * * *', async() => {
-        const monitors = await MonitorModel.find({
-            active:true
+const checkurl = () => {
+    // Runs every 10 minutes
+    cron.schedule('0 */10 * * * *', async () => {
+        try {
+            const monitors = await MonitorModel.find({
+                active: true
             });
-        
-        await Promise.all(
-                monitors.map(async monitor => {
-                
-        const url  = monitor.url;
-        const start = Date.now();
-        const response = await axios.get(url, {
-        timeout:5000,// wait 5 sec if not endtimeout
-        validateStatus: () => true // so not get error for  401 and other as it consider only sucess as 200-299
-        });
-        const end = Date.now();
 
-        const responseTime = end - start;
-        const status = response.status;
-        let isUp = false;
+            await Promise.all(
+                monitors.map(async (monitor) => {
+                    try {
+                        const start = Date.now();
 
-        if(status>=200 && status<299){
-            isUp = true;
+                        const response = await axios.get(monitor.url, {
+                            timeout: 5000,
+                            validateStatus: () => true
+                        });
+
+                        const responseTime = Date.now() - start;
+
+                        await check_url.create({
+                            url: monitor.url,
+                            status: response.status,
+                            responseTime,
+                            isUp:
+                                response.status >= 200 &&
+                                response.status < 300,
+                            monitorid: monitor._id
+                        });
+
+                        await MonitorModel.findByIdAndUpdate(
+                            monitor._id,
+                            {
+                                lastCheckedAt: new Date(),
+                                nextCheckedAt: new Date(
+                                    Date.now() +
+                                        monitor.interval * 1000
+                                )
+                            }
+                        );
+                    } catch (err) {
+                        console.error(
+                            `Failed checking ${monitor.url}:`,
+                            err.message
+                        );
+
+                        await check_url.create({
+                            url: monitor.url,
+                            status: null,
+                            responseTime: null,
+                            isUp: false,
+                            errorCode: err.code || null,
+                            errorMessage: err.message,
+                            monitorid: monitor._id
+                        });
+
+                        await MonitorModel.findByIdAndUpdate(
+                            monitor._id,
+                            {
+                                lastCheckedAt: new Date(),
+                                nextCheckedAt: new Date(
+                                    Date.now() +
+                                        monitor.interval * 1000
+                                )
+                            }
+                        );
+                    }
+                })
+            );
+        } catch (err) {
+            console.error('Cron Job Error:', err);
         }
-         
-        const user  = await check_url.create({
-                url,
-                status ,
-                responseTime ,
-                isUp,
-                monitorid:monitor._id
-        });
-
-        // console.log(`response ${user} of ${monitor} `);
-
-                    // check url
-                   })
-        )
-
-    //     for (monitor in monitors){
-
-    //     const url  = monitors[monitor].url;
-
-    //     const start = Date.now();
-    //     const response = await axios.get(url, {
-    //     timeout:5000,// wait 5 sec if not endtimeout
-    //     validateStatus: () => true // so not get error for  401 and other as it consider only sucess as 200-299
-    //     });
-    //     const end = Date.now();
-
-    //     const responseTime = end - start;
-    //     const status = response.status;
-    //     let isUp = false;
-
-    //     if(status>=200 && status<299){
-    //         isUp = true;
-    //     }
-         
-    //     const user  = await check_url.create({
-    //             url,
-    //             status ,
-    //             responseTime ,
-    //             isUp,
-    //             monitorid:monitors[monitor]._id
-    //     });
-
-    //     console.log(`response ${user} of ${monitors[monitor]} `);
-
-    // };
-
-    })
-   
-        
-    // checking is this url exist in real 
-    
-    }
+    });
+};
 
        
     
-    
+const getMonitorChecks = async(req,res)=>{
+
+try{
+
+    const monitor = await MonitorModel.findOne({
+        _id:req.params.id,
+        userId:req.user.userId
+    });
+
+    if(!monitor){
+
+        return res.status(404).json({
+            success:false,
+            message:"Monitor not found"
+        });
+
+    }
+
+
+    const checks = await check_url.find({
+        monitorid:req.params.id
+    })
+    .sort({
+        checkedAt:-1
+    });
+
+
+    res.json({
+        success:true,
+        data:checks
+    });
+
+}
+catch(err){
+
+    res.status(500).json({
+        success:false,
+        message:err.message
+    });
+
+}
+
+}
 
 
 
-module.exports = checkurl;
+module.exports = {
+    checkurl,
+    getMonitorChecks
+};
