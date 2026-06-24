@@ -1,6 +1,7 @@
 const axios = require('axios');
 const UserModel = require('../models/user.models');
 const MonitorModel = require('../models/monitor.model');
+const check_url = require('../models/check.models');
 
 const UrlValidator = async (req, res , next)=>{
     
@@ -23,7 +24,7 @@ const UrlValidator = async (req, res , next)=>{
     // });
     const existingMonitor = await MonitorModel.findOne({
     userId: req.user.userId,
-    url
+    url:normalizedUrl
     });
 
 if (existingMonitor) {
@@ -34,10 +35,12 @@ if (existingMonitor) {
 }
 
     // checking is this url exist in real 
-    const response = await axios.get(url, {
+    const start = Date.now();
+    const response = await axios.get(normalizedUrl, {
     timeout:5000,// wait 5 sec if not endtimeout
     validateStatus: () => true // so not get error for  401 and other as it consider only sucess as 200-299
     });
+    const responseTime = Date.now() - start;
 
    const user = await UserModel.findOneAndUpdate(
   {
@@ -64,10 +67,30 @@ if (existingMonitor) {
        
     });
 
-    req.userUrl = Monitor;
-    // if(status >= 200 && status < 400) {
+    req.userUrl = Monitor; 
 
-    // }
+    const check = await check_url.create({
+    url: normalizedUrl,
+    status: response.status,
+    responseTime,
+    isUp: response.status < 400,
+    monitorid: Monitor._id
+});
+    
+
+return res.status(201).json({
+    success:true,
+    monitor:{
+        id: Monitor._id,
+        url: Monitor.url
+    },
+    latestCheck:{
+        status: check.status,
+        responseTime: check.responseTime,
+        isUp: check.isUp
+    }
+});
+    
     // res.json(response.status);    // 200 OK
     // 301 Redirect
     // 404 Not Found
@@ -75,23 +98,33 @@ if (existingMonitor) {
     // 503 Service Unavailable
 
 
-    next();
 
     }catch(err){
-    //     const user  = await user_url.create({
-    //     url,
-    //     status : null,
-    //     responseTime :null ,
-    //     errorCode : err.code,
-    //     errorMessage:err.message,
-    //     isUp : false
-    // });
 
-    // req.userUrl = user;
-    return res.status(400).json({
-        name: err.message
-    });
+    await Check_url.create({
+    url: normalizedUrl,
+    status: null,
+    responseTime: null,
+    isUp:false,
+    errorCode: err.code,
+    errorMessage: err.message,
+    monitorid: monitor._id
+  });
+
+  res.status(201).json({
+    success:true,
+    monitor:{
+        id: monitor._id,
+        url: monitor.url
+    },
+    latestCheck:{
+        isUp:false,
+        errorCode:err.code,
+        errorMessage:err.message
     }
+});
+
+}
 }
 
 module.exports = UrlValidator;

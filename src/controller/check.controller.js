@@ -8,7 +8,10 @@ const checkurl = () => {
     cron.schedule('0 */10 * * * *', async () => {
         try {
             const monitors = await MonitorModel.find({
-                active: true
+                active: true,
+                nextCheckedAt: {
+                        $lte: new Date()
+                        }
             });
 
             await Promise.all(
@@ -104,13 +107,21 @@ try{
     })
     .sort({
         checkedAt:-1
-    });
+    }).limit(50)
+    .lean();
 
 
-    res.json({
-        success:true,
-        data:checks
-    });
+   res.json({
+    success:true,
+
+    monitor:{
+        monitorId: monitor._id,
+        url: monitor.url,
+        active: monitor.active
+    },
+
+    checks
+});
 
 }
 catch(err){
