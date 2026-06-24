@@ -6,7 +6,7 @@ app.use(cookieParser());
 const cors = require('cors');
 app.use(cors({
 
-  origin:  ["https://vermillion-moxie-00c920.netlify.app"],
+  origin:  ["https://vermillion-moxie-00c920.netlify.app" ,"https://url-monitor-frontend.onrender.com/"],
 
   credentials: true
 }));
