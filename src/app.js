@@ -6,7 +6,7 @@ app.use(cookieParser());
 const cors = require('cors');
 app.use(cors({
 
-  origin:  ["http://localhost:8080", "http://127.0.0.1:8080"],
+  origin:  ["https://url-monitor-frontend-q15erg6l7.vercel.app"],
 
   credentials: true
 }));
