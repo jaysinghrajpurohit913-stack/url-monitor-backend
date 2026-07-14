@@ -27,11 +27,13 @@ const UserInput  = async(req , res , next)=>{
         username:newuser.username,
      },process.env.JWT_secret,)
      
-    res.cookie('token', token, {
+    res.cookie("token", token, {
     httpOnly: true,
-    sameSite: 'lax',
-    secure: false
+    secure: true,
+    sameSite: "none",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
 });
+
 
 
     next();
@@ -69,7 +71,13 @@ const UserLogin = async(req , res ,next)=>{
         username:user.username,
      },process.env.JWT_secret,)
      
-     res.cookie('token',token);
+    res.cookie("token", token, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+});
+
      next();
     }catch(err){
         return res.status(404).json({
