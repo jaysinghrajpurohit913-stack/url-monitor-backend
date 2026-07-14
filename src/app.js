@@ -5,7 +5,7 @@ const cookieParser = require("cookie-parser");
 app.use(cookieParser());
 const cors = require('cors');
 app.use(cors({
-  origin:  ["http://localhost:8080"],
+  origin:  ["https://url-monitor-frontend.onrender.com"],
   credentials: true
 }));
 
