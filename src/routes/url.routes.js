@@ -13,8 +13,8 @@ const {getMonitorChecks} = require('../controller/check.controller');
 routes.post('/monitor' , auth ,UrlValidator); // create monitor and 1st check
 
 routes.get('/monitors', auth , getmonitors); // read
-routes.get('/deletemonitorall', auth , deleteAllMonitor ); // delete
-routes.get('/monitor/:id' , auth ,deleteMonitor );
+routes.delete('/deletemonitorall', auth , deleteAllMonitor ); // delete
+routes.delete('/monitor/:id' , auth ,deleteMonitor );
 
 
 
